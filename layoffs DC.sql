@@ -9,11 +9,8 @@ FROM layoffs;
 
 
 SELECT * 
-FROM world_layoffs.layoffs;
+FROM world_layoffs;
 
-
-
--- first thing we want to do is create a staging table. This is the one we will work in and clean the data. We want a table with the raw data in case something happens
 CREATE TABLE world_layoffs.layoffs_staging 
 LIKE world_layoffs.layoffs;
 
@@ -21,11 +18,7 @@ INSERT layoffs_staging
 SELECT * FROM world_layoffs.layoffs;
 
 
--- now when we are data cleaning we usually follow a few steps
--- 1. check for duplicates and remove any
--- 2. standardize data and fix errors
--- 3. Look at null values and see what 
--- 4. remove any columns and rows that are not necessary - few ways
+
 
 
 
@@ -64,9 +57,8 @@ SELECT *
 FROM world_layoffs.layoffs_staging
 WHERE company = 'Oda'
 ;
--- it looks like these are all legitimate entries and shouldn't be deleted. We need to really look at every single row to be accurate
 
--- these are our real duplicates 
+
 SELECT *
 FROM (
 	SELECT company, location, industry, total_laid_off,percentage_laid_off,`date`, stage, country, funds_raised_millions,
@@ -79,9 +71,9 @@ FROM (
 WHERE 
 	row_num > 1;
 
--- these are the ones we want to delete where the row number is > 1 or 2or greater essentially
 
--- now you may want to write it like this:
+
+
 WITH DELETE_CTE AS 
 (
 SELECT *
@@ -112,8 +104,7 @@ WHERE (company, location, industry, total_laid_off, percentage_laid_off, `date`,
 	FROM DELETE_CTE
 ) AND row_num > 1;
 
--- one solution, which I think is a good one. Is to create a new column and add those row numbers in. Then delete where row numbers are over 2, then delete that column
--- so let's do it!!
+
 
 ALTER TABLE world_layoffs.layoffs_staging ADD row_num INT;
 
@@ -195,19 +186,12 @@ WHERE company LIKE 'Bally%';
 -- nothing wrong here
 SELECT *
 FROM world_layoffs.layoffs_staging2
-WHERE company LIKE 'airbnb%';
-
--- it looks like airbnb is a travel, but this one just isn't populated.
--- I'm sure it's the same for the others. What we can do is
--- write a query that if there is another row with the same company name, it will update it to the non-null industry values
--- makes it easy so if there were thousands we wouldn't have to manually check them all
-
--- we should set the blanks to nulls since those are typically easier to work with
+WHERE company LIKE ''
 UPDATE world_layoffs.layoffs_staging2
 SET industry = NULL
 WHERE industry = '';
 
--- now if we check those are all null
+-- now checking those are all null
 
 SELECT *
 FROM world_layoffs.layoffs_staging2
@@ -215,7 +199,7 @@ WHERE industry IS NULL
 OR industry = ''
 ORDER BY industry;
 
--- now we need to populate those nulls if possible
+-- now populate those nulls if possible
 
 UPDATE layoffs_staging2 t1
 JOIN layoffs_staging2 t2
